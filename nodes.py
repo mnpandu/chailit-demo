@@ -1,4 +1,3 @@
-# nodes.py (modularized version)
 import re
 from transformers import pipeline
 from langchain_community.vectorstores import FAISS
@@ -8,12 +7,12 @@ from oracle_data_vector_store import build_oracle_vectorstore
 model_path = "C:/Users/mnpan/.cache/huggingface/hub/models--distilbert-base-cased-distilled-squad/snapshots/564e9b582944a57a3e586bbb98fd6f0a4118db7f"
 
 qa_pipeline = pipeline("question-answering", model=model_path)
+oracle_vectorstore = build_oracle_vectorstore()
 
 def input_resolver_node(state: dict) -> dict:
     query = state["question"]
     mode = state.get("mode", "chat")
 
-    # Block case inputs in chat mode
     if mode == "chat" and re.fullmatch(r"\d{4,6}", query.strip()):
         return {
             **state,
@@ -21,16 +20,17 @@ def input_resolver_node(state: dict) -> dict:
             "answer": "⚠️ Case numbers are not allowed in Chat Mode. Please switch to Similarity Mode."
         }
 
+    if mode == "qc":
+        match = re.fullmatch(r"\d{4,6}", query.strip())
+        if match:
+            return { **state, "input_type": "qc", "case_number": match.group(0) }
+
     if re.fullmatch(r"\d{4,6}", query.strip()) or re.search(r"\b(case|related|similar|issue)\b", query.lower()):
         return { **state, "input_type": "case" }
 
     return { **state, "input_type": "question" }
 
-
-
-
 def oracle_fetch_node(state: dict) -> dict:
-    # Block case number lookups in chat mode
     if state.get("mode") != "similarity":
         return {
             **state,
@@ -55,12 +55,8 @@ def oracle_fetch_node(state: dict) -> dict:
         "context": case_text
     }
 
-
-oracle_vectorstore = build_oracle_vectorstore()
-
 def get_similarity_node():
     def similarity_node(state: dict) -> dict:
-        # 🛑 Block similarity search in chat mode
         if state.get("mode") != "similarity":
             return {
                 **state,
@@ -82,7 +78,6 @@ def get_similarity_node():
             "retrieved_docs": docs_and_scores
         }
     return similarity_node
-
 
 def format_table_node(state: dict) -> dict:
     docs_and_scores = state.get("retrieved_docs", [])
@@ -120,4 +115,65 @@ def answer_node(state: dict) -> dict:
     return {
         **state,
         "answer": result["answer"]
+    }
+
+# ------------------ QC Nurse Agentic AI ------------------
+
+def qc_fetch_claims_node(state: dict) -> dict:
+    case_number = state.get("case_number", "000000")
+    claims = [f"Claim-{case_number}-{i}" for i in range(1, 4)]
+    progress = "✅ Fetch all claims under the case"
+    return {
+        **state,
+        "qc_claims": claims,
+        "qc_progress": [progress],
+        "qc_status": progress
+    }
+
+def qc_create_task_node(state: dict) -> dict:
+    claims = state.get("qc_claims", [])
+    qualified = claims
+    progress = "✅ Create QC Task"
+    return {
+        **state,
+        "qualified_claims": qualified,
+        "qc_status": progress,
+        "qc_progress": state.get("qc_progress", []) + [progress]
+    }
+
+def qc_review_node(state: dict) -> dict:
+    reviewed = [f"{claim}: Reviewed ✅" for claim in state.get("qualified_claims", [])]
+    progress = "✅ Review each claim and update QC Status"
+    return {
+        **state,
+        "reviewed_claims": reviewed,
+        "qc_status": progress,
+        "qc_progress": state.get("qc_progress", []) + [progress]
+    }
+
+def qc_check_complete_node(state: dict) -> dict:
+    all_done = all("Reviewed" in c for c in state.get("reviewed_claims", []))
+    progress = "✅ Check if all claims are reviewed"
+    status = "QC Completed" if all_done else "QC Incomplete"
+    return {
+        **state,
+        "qc_status": status,
+        "qc_progress": state.get("qc_progress", []) + [progress]
+    }
+
+def qc_finalize_node(state: dict) -> dict:
+    progress = [
+        "✅ Preparing Claims for QC Task.",
+        "✅ Create QC Task",
+        "✅ Review each claim and update QC Status",
+        "✅ Check if all claims are reviewed"
+        "✅ QC Task Completed and Close Task.",
+        "✅ Send Email for confirmation.",
+    ]
+    full_log = state.get("qc_progress", []) + progress
+    return {
+        **state,
+        "answer": "\n".join(full_log),
+        "qc_status": "Email sent",
+        "qc_progress": full_log
     }
