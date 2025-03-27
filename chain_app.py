@@ -25,13 +25,14 @@ def create_action(name, label, description="", payload=None):
 @cl.on_chat_start
 async def start():
     try:
-        cl.user_session.set("mode", "chat")
+        #cl.user_session.set("mode", "chat")
+
         await cl.Message(
             content="## 🚀 Business Data Assistant\nSelect a mode:",
             actions=[
                 create_action("set_chat_mode", "💬 Chat Mode", "Ask business questions", {"mode": "chat"}),
                 create_action("set_similarity_mode", "🔍 Similarity Search", "Find similar cases", {"mode": "similarity"}),
-                create_action("set_qc_mode", "🧪 QC Nurse (Agentic AI)", "Run QC automation", {"mode": "qc"})                
+                create_action("set_qc_mode", "🧪 QC Nurse (Agentic AI)", "Run QC automation", {"mode": "qc"})
             ]
         ).send()
     except Exception as e:
@@ -56,7 +57,7 @@ async def handle_mode_change(new_mode: str, message: str):
         actions = [
             create_action("set_chat_mode", "💬 Chat Mode", {"mode": "chat"}),
             create_action("set_similarity_mode", "🔍 Similarity Mode", {"mode": "similarity"}),
-            create_action("set_qc_mode", "🧪 QC Nurse (Agentic AI)", {"mode": "qc"})           
+            create_action("set_qc_mode", "🧪 QC Nurse (Agentic AI)", {"mode": "qc"})
         ]
         await cl.Message(content=message, actions=actions).send()
     except Exception as e:
@@ -66,7 +67,12 @@ async def handle_mode_change(new_mode: str, message: str):
 @cl.on_message
 async def on_message(message: cl.Message):
     try:
-        mode = cl.user_session.get("mode", "chat")
+        mode = cl.user_session.get("mode")
+
+        if not mode:
+            await cl.Message(content="⚠️ Please select at least one mode to continue.").send()
+            return
+
         question = message.content.strip()
         if not question:
             await cl.Message(content="❌ Please enter a question").send()
@@ -85,10 +91,10 @@ async def on_message(message: cl.Message):
         answer = result.get("answer", "No answer generated")
 
         if mode == "similarity" and "| Rank |" in answer:
-            await msg.stream_token("### Similar Cases\n```markdown\n")
-            await msg.stream_token(answer)
-            await msg.stream_token("\n```")
+            # Send the table as a single markdown block
+            await msg.stream_token(f"**Answer:**\n\n{answer}\n")
         else:
+            # Stream regular text word-by-word
             await msg.stream_token("**Answer:** ")
             for word in answer.split():
                 await msg.stream_token(word + " ")

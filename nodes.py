@@ -31,16 +31,10 @@ def input_resolver_node(state: dict) -> dict:
     return { **state, "input_type": "question" }
 
 def oracle_fetch_node(state: dict) -> dict:
-    if state.get("mode") != "similarity":
-        return {
-            **state,
-            "retrieved_docs": [],
-            "answer": "⚠️ Case lookup is only available in Similarity Mode."
-        }
-
     query = state["question"]
     match = re.search(r"\b\d{4,6}\b", query)
     case_number = match.group(0) if match else ""
+    state["case_number"] = case_number
 
     case_text = fetch_case_data(case_number)
     if not case_text.strip():
@@ -54,6 +48,7 @@ def oracle_fetch_node(state: dict) -> dict:
         **state,
         "context": case_text
     }
+
 
 def get_similarity_node():
     def similarity_node(state: dict) -> dict:
