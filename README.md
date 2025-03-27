@@ -1,79 +1,105 @@
-# 🧠 Chainlit + LangGraph Business Assistant (HuggingFace + Vectorstore + Oracle Case Search)
+# 🧠 Business Data Assistant with Agentic AI (Chainlit + LangGraph)
 
-This project is a modular AI assistant built using **Chainlit**, **LangGraph**, and **HuggingFace** that supports two main modes:
-1. **Chat Mode** – Ask general business or IT-related questions based on `data.txt`
-2. **Similarity Mode** – Look up similar Oracle cases based on a case number
+This is a multimodal, agentic assistant designed for business workflows using:
 
----
-
-## 🗂 Project Structure
-
-| File | Purpose |
-|------|---------|
-| `chain_app.py` | Chainlit UI app with mode switching and message routing |
-| `graph.py` | LangGraph flow orchestrating input resolution, retrieval, QA, and similarity |
-| `nodes.py` | Node functions used in LangGraph (e.g., retrievers, answerer, similarity) |
-| `vector_store.py` | FAISS vectorstore builder using `data.txt` for general knowledge |
-| `oracle_client.py` | In-memory SQLite database simulating Oracle case data |
-| `load_data.py` | Loads text file into LangChain documents |
-| `sentencetransformer.py` | Loads HuggingFace model path for embedding |
-| `data.txt` | Business knowledge source used in general chat mode |
+- ✅ **Chainlit** for frontend UI interaction
+- ✅ **LangGraph** for modular reasoning and control
+- ✅ **HuggingFace QA pipeline** for local NLP
+- ✅ **Oracle DB** simulation for case/claim data
 
 ---
 
-## 💡 Modes
+## 🚀 Features
 
-### 💬 Chat Mode
-- Uses `data.txt` via FAISS + HuggingFace QA pipeline
-- Ideal for business/technical Q&A
+### 🔹 Chat Mode
+- Ask business or operational questions.
+- Powered by a local DistilBERT QA model.
 
-### 🔍 Similarity Mode
-- Input a case number like `123456`
-- Fetches case context from Oracle (SQLite)
-- Searches for similar cases via FAISS vectorstore
+### 🔹 Similarity Mode
+- Enter a case number to find similar cases.
+- Uses FAISS similarity search on Oracle case vectors.
+
+### 🔹 QC Nurse (Agentic AI)
+- Enter a case number to run a full QC automation pipeline:
+  - ✅ Fetch all claims
+  - ✅ Create QC task
+  - ✅ Review each claim
+  - ✅ Check completion
+  - ✅ Mark as done + send confirmation
 
 ---
 
-## 🧪 Quick Start
+## 📁 Folder Structure
 
-### 1. Install dependencies
-```bash
-pip install -r requirements.txt
+```
+├── chain_app.py         # Chainlit frontend
+├── graph.py             # LangGraph flow definition
+├── nodes.py             # All logic nodes (chat, similarity, QC)
+├── oracle_client.py     # Case fetch simulation (Oracle)
+├── vector_store.py      # FAISS vector loader
+├── data.txt             # Source data
+├── README.md            # This doc
 ```
 
-### 2. Run the Chainlit app
+---
+
+## 🔧 Local Setup
+
 ```bash
+# Install deps
+pip install chainlit langchain langgraph faiss-cpu transformers
+
+# Run app
 chainlit run chain_app.py
 ```
 
-### 3. Choose a mode and interact!
+Uses `distilbert-base-cased-distilled-squad` from local HuggingFace cache.
 
 ---
 
-## 🧰 LLM & Embedding Setup
+## 💡 Future Upgrades
 
-- Uses local HuggingFace models from `.cache`
-- `sentence-transformers` for embeddings
-- `distilbert-base-cased-distilled-squad` for QA
+### 🔹 Azure Integration
+- ✅ Switch local models to Azure OpenAI:
+  - Replace HuggingFace QA with `AzureChatOpenAI`
+  - Secure API key & endpoint in `.env`
+- ✅ Replace FAISS with Azure Cognitive Search
+- ✅ Store QC task logs in Azure Blob or SQL DB
+- ✅ Use Azure Functions to trigger real-time email alerts
 
-Ensure models are pre-downloaded to avoid internet access.
+### 🔹 LangChain Agent Upgrade
+- Add memory and self-correction
+- Visual tool routing
+- Integrate LangSmith for monitoring
 
----
-
-## ⚠️ Notes
-
-- In-memory DB resets every run (demo only)
-- You can extend this to real Oracle by replacing `oracle_client.py`
-- If case number not found, the system will return a warning
-- Mode-specific logic prevents case queries in Chat Mode and vice versa
-
----
-
-## ✅ Future Upgrades
-- Agent mode via LangChain `@tool` functions
-- Oracle case vectorstore for similarity-only search
-- Dynamic retrieval augmentation with metadata filtering
+### 🔹 Chainlit UI Enhancements
+- Display progress as timeline cards
+- Add file upload for documents
+- Multi-user session management
 
 ---
 
-Made with ❤️ for business automation use cases.
+## ☁️ Agentic AI Architecture on Azure (Proposed)
+
+| Layer                | Component                                         |
+|---------------------|----------------------------------------------------|
+| **UI**              | Chainlit (hosted on Azure Web App / Static Site)  |
+| **Routing**         | LangGraph (Python logic + decision flows)         |
+| **LLM**             | Azure OpenAI (e.g. gpt-4, gpt-35-turbo)            |
+| **Search**          | Azure Cognitive Search                            |
+| **Storage**         | Azure Blob Storage / Azure SQL DB for logs/tasks  |
+| **Triggering**      | Azure Functions (QC task updates, email alerts)   |
+| **Agent Memory**    | Azure Cosmos DB / Redis Cache                     |
+| **Monitoring**      | LangSmith + Azure App Insights                    |
+
+### 🔧 DevOps (optional)
+- CI/CD via GitHub Actions to Azure App Service
+- Secrets managed with Azure Key Vault
+- Infrastructure-as-Code with Bicep or Terraform
+
+---
+
+## 🙌 Maintainers
+Built by [YourTeam] with ❤️ using open AI infra.
+
+Feel free to fork, deploy, and expand!
