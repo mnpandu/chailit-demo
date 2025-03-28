@@ -4,31 +4,10 @@ from langchain_community.vectorstores import FAISS
 from oracle_client import fetch_case_data
 from oracle_data_vector_store import build_oracle_vectorstore
 
-model_path = "C:/Users/mnpan/.cache/huggingface/hub/models--distilbert-base-cased-distilled-squad/snapshots/564e9b582944a57a3e586bbb98fd6f0a4118db7f"
+model_path = "distilbert-base-cased-distilled-squad"
 
 qa_pipeline = pipeline("question-answering", model=model_path)
 oracle_vectorstore = build_oracle_vectorstore()
-
-def input_resolver_node(state: dict) -> dict:
-    query = state["question"]
-    mode = state.get("mode", "chat")
-
-    if mode == "chat" and re.fullmatch(r"\d{4,6}", query.strip()):
-        return {
-            **state,
-            "input_type": "invalid",
-            "answer": "⚠️ Case numbers are not allowed in Chat Mode. Please switch to Similarity Mode."
-        }
-
-    if mode == "qc":
-        match = re.fullmatch(r"\d{4,6}", query.strip())
-        if match:
-            return { **state, "input_type": "qc", "case_number": match.group(0) }
-
-    if re.fullmatch(r"\d{4,6}", query.strip()) or re.search(r"\b(case|related|similar|issue)\b", query.lower()):
-        return { **state, "input_type": "case" }
-
-    return { **state, "input_type": "question" }
 
 def oracle_fetch_node(state: dict) -> dict:
     query = state["question"]
@@ -78,8 +57,7 @@ def format_table_node(state: dict) -> dict:
     docs_and_scores = state.get("retrieved_docs", [])
     formatted_table = "| Rank | Similar Case | Score |\n|------|----------------|-------|\n"
     for i, (doc, score) in enumerate(docs_and_scores):
-        snippet = doc.page_content[:80].replace("\n", " ")
-        formatted_table += f"| {i+1} | {snippet} | {score:.4f} |\n"
+       formatted_table += f"| {i+1} | {doc.page_content} | {score:.4f} |\n"
     return {
         **state,
         "answer": formatted_table
@@ -161,7 +139,7 @@ def qc_finalize_node(state: dict) -> dict:
         "✅ Preparing Claims for QC Task.",
         "✅ Create QC Task",
         "✅ Review each claim and update QC Status",
-        "✅ Check if all claims are reviewed"
+        "✅ Check if all claims are reviewed",
         "✅ QC Task Completed and Close Task.",
         "✅ Send Email for confirmation.",
     ]

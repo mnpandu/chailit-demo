@@ -90,15 +90,9 @@ async def on_message(message: cl.Message):
 
         answer = result.get("answer", "No answer generated")
 
-        if mode == "similarity" and "| Rank |" in answer:
-            # Send the table as a single markdown block
-            await msg.stream_token(f"**Answer:**\n\n{answer}\n")
-        else:
-            # Stream regular text word-by-word
-            await msg.stream_token("**Answer:** ")
-            for word in answer.split():
-                await msg.stream_token(word + " ")
-                sleep(0.03)
+        for word in answer:
+            await msg.stream_token(word)
+            sleep(0.03)
 
         await msg.update()
 

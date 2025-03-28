@@ -12,7 +12,7 @@ def build_oracle_vectorstore() -> FAISS:
 
     documents = [
         Document(
-            page_content=f"{desc}\n{comments}",
+            page_content=f"{desc} {comments}",
             metadata={"case_number": num}
         )
         for num, desc, comments in rows
