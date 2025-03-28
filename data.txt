@@ -1,0 +1,7 @@
+Medical Connect application is useful to developing a new workflow management system to automate processes, improve monitoring, and enhance overall performance and Automation.
+Enhanced Monitoring by Role-based dashboards and reports will allow team members and management to track performance in real time. Management can use dashboards to review performance statistics, identify irregularities, and address workload fluctuations promptly, ensuring quality performance.
+The users of this applications are Novitas and First Coast Medical Review units are involving a new workflow management system to automate processes, improve monitoring, and enhance overall performance.
+There are two types of claims. two types are Prepay claims and postpay claims. Prepay claims from SNAP and Postpay claims from Mainframe are loading. BPM plays very important role in Prepay claims loading in Medical Connect.
+IT team are Pandu Ramjanri and Rajesh Jonnalagadda point of contact of IT. IT team manager is Ajit Perakatte. For any issues, please contact IT team via email medicalconnect-services-dev@fcso.com.
+New user should create a ticket in my access for role-based id and it take 24 hrs to get access once its approved.
+Technology Stack used Java, Spring Boot, Spring Batch for backend and ReactJS for Frontend. MongoDB and Oracle Database are used. Mongo Database used for audit logs and Oracle database used for processing transactional data respectively. It’s deployed in Openshift.
