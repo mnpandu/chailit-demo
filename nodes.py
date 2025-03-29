@@ -2,7 +2,7 @@ import re
 from transformers import pipeline
 from langchain_community.vectorstores import FAISS
 from oracle_client import fetch_case_data
-from oracle_data_vector_store import build_oracle_vectorstore
+from vector_store_case_data import build_oracle_vectorstore
 
 model_path = "distilbert-base-cased-distilled-squad"
 

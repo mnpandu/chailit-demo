@@ -1,5 +1,5 @@
 import chainlit as cl
-from chat_data_vector_store import build_vectorstore
+from vector_store_chat_data import build_vectorstore
 from graph import build_graph
 from time import sleep
 import logging
