@@ -16,8 +16,51 @@ This is a multimodal, agentic assistant designed for business workflows using:
 - Powered by a local DistilBERT QA model.
 
 ### 🔹 Similarity Mode
-- Enter a case number to find similar cases.
-- Uses FAISS similarity search on Oracle case vectors.
+- Enter a **case number** (e.g., `MR123456`) to find similar case descriptions  
+- Enter a **claim number** (e.g., `CL123456`) to find similar claim records  
+- Uses FAISS similarity search on vector embeddings
+
+#### 🔎 Sample Input
+| Input Type | Example ID   | Used In          |
+|------------|--------------|------------------|
+| Case       | `MR123456`   | Case Similarity  |
+| Claim      | `CL123456`   | Claim Similarity |
+
+---
+
+### 📄 Sample Case Data
+
+| Case Number | Description                           | Comments                         |
+|-------------|---------------------------------------|----------------------------------|
+| MR123456    | System crash when exporting reports   | Issue occurs after patch update. |
+| MR654321    | Login failure for admin accounts      | Likely due to expired certs.     |
+| MR789012    | Data sync slow between nodes          | High latency on weekends.        |
+
+### 📄 Sample Claim Data
+
+| Claim Number | Case Number | Base Rate | Units | Discount | Calculated | Expected |
+|--------------|-------------|-----------|--------|----------|------------|----------|
+| CL123456     | 456789      | 100       | 3      | 50       | 250        | 300      |
+| CL654321     | 123456      | 80        | 5      | 20       | 380        | 380      |
+| CL789012     | 654321      | 120       | 2      | 0        | 240        | 240      |
+| CL789013     | 789012      | 90        | 4      | 30       | 330        | 360      |
+
+### ✅ Expected Output
+
+#### Case Similarity (`MR123456`):
+| Rank | Similar Case | Score |
+|------|--------------|--------|
+| 1    | Login failure for admin accounts... | 0.8423 |
+| 2    | Data sync slow between nodes...     | 0.7150 |
+| ...  | ...                                  | ...    |
+
+#### Claim Similarity (`CL123456`):
+| Rank | Case # | Claim #   | Claim Text                                                                   | Score  |
+|------|--------|-----------|-------------------------------------------------------------------------------|--------|
+| 1    | 456789 | CL123456  | Base Rate: 100 \| Units: 3 \| Discount: 50 \| Calculated: 250 \| Expected: 300 | 1.0000 |
+| 2    | 789012 | CL789013  | Base Rate: 90  \| Units: 4 \| Discount: 30 \| Calculated: 330 \| Expected: 360 | 0.85   |
+
+---
 
 ### 🔹 QC Nurse (Agentic AI)
 - Enter a case number to run a full QC automation pipeline:
