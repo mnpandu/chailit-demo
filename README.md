@@ -146,3 +146,25 @@ Uses `distilbert-base-cased-distilled-squad` from local HuggingFace cache.
 Built by [YourTeam] with ❤️ using open AI infra.
 
 Feel free to fork, deploy, and expand!
+
+---
+
+## 📦 Python Dependencies
+
+All dependencies are listed in `requirements.txt`.
+
+### 🔹 Install via pip
+
+```bash
+pip install -r requirements.txt
+```
+
+This includes:
+- `chainlit` for UI
+- `langchain`, `langgraph` for graph logic
+- `transformers` and `sentence-transformers` for NLP
+- `faiss-cpu` for similarity search
+- `pandas` for mock database handling
+
+---
+

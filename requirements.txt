@@ -1,0 +1,7 @@
+chainlit
+langchain
+langgraph
+faiss-cpu
+transformers
+sentence-transformers
+pandas
