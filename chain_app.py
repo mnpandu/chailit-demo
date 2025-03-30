@@ -45,7 +45,7 @@ async def on_chat_action(action: cl.Action):
 
 @cl.action_callback("set_similarity_mode")
 async def on_similarity_action(action: cl.Action):
-    await handle_mode_change("similarity", "🔍 **Similarity Mode Activated**\nEnter case references:")
+    await handle_mode_change("similarity", "🔍 **Similarity Mode Activated**\nEnter Case#MR123456 or Claim#CL123456:")
 
 @cl.action_callback("set_qc_mode")
 async def on_qc_action(action: cl.Action):
@@ -99,6 +99,8 @@ async def on_message(message: cl.Message):
     except Exception as e:
         logger.error(f"Message error: {str(e)}")
         await cl.Message(content=f"⚠️ Error: {str(e)}").send()
+
+graph.get_graph().print_ascii()
 
 if __name__ == "__main__":
     from chainlit.cli import run_chainlit

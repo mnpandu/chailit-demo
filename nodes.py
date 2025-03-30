@@ -1,67 +1,86 @@
 import re
 from transformers import pipeline
 from langchain_community.vectorstores import FAISS
-from oracle_client import fetch_case_data
+from oracle_client import fetch_case_data,fetch_claim_data
 from vector_store_case_data import build_oracle_vectorstore
+from vector_store_claims_data import build_claims_vectorstore
 
 model_path = "distilbert-base-cased-distilled-squad"
-
 qa_pipeline = pipeline("question-answering", model=model_path)
+
 oracle_vectorstore = build_oracle_vectorstore()
+claims_vectorstore = build_claims_vectorstore()
+
 
 def oracle_fetch_node(state: dict) -> dict:
     query = state["question"]
-    match = re.search(r"\b\d{4,6}\b", query)
-    case_number = match.group(0) if match else ""
-    state["case_number"] = case_number
+    match = re.search(r"\b(MR\d{4,6}|CL\d{4,6})\b", query, re.IGNORECASE)
+    identifier = match.group(0) if match else ""
+    state["case_number"] = identifier  # keep original field name
 
-    case_text = fetch_case_data(case_number)
-    if not case_text.strip():
-        return {
-            **state,
-            "retrieved_docs": [],
-            "answer": "⚠️ Case not found."
-        }
+    if identifier.startswith("MR"):
+        case_text = fetch_case_data(identifier)
+        if not case_text.strip():
+            return {**state, "retrieved_docs": [], "answer": "⚠️ Case not found."}
+        return {**state, "context": case_text}
 
-    return {
-        **state,
-        "context": case_text
-    }
+    elif identifier.startswith("CL"):
+        claim_text = fetch_claim_data(identifier)
+        if not claim_text.strip():
+            return {**state, "retrieved_docs": [], "answer": "⚠️ Claim not found."}
+        return {**state, "context": claim_text}
+
+    return {**state, "retrieved_docs": [], "answer": "⚠️ No valid identifier found."}
 
 
-def get_similarity_node():
+
+def get_similarity_node(source_type="case"):
     def similarity_node(state: dict) -> dict:
-        if state.get("mode") != "similarity":
+        case_number = state.get("case_number", "")
+        if source_type == "case":
+            docs_and_scores = oracle_vectorstore.similarity_search_with_score(state.get("context", ""), k=5)
+        elif source_type == "claim":
+            docs_and_scores = claims_vectorstore.similarity_search_with_score(state.get("context", ""), k=5)
+        else:
+            docs_and_scores = []
+
+        if not docs_and_scores:
             return {
                 **state,
                 "retrieved_docs": [],
-                "answer": "⚠️ Similarity search is only available in Similarity Mode."
+                "answer": f"⚠️ No similar documents found for {case_number}."
             }
 
-        case_text = state.get("context", "").strip()
-        if not case_text:
-            return {
-                **state,
-                "retrieved_docs": [],
-                "answer": "⚠️ Case not found."
-            }
-
-        docs_and_scores = oracle_vectorstore.similarity_search_with_score(case_text, k=5)
         return {
             **state,
             "retrieved_docs": docs_and_scores
         }
     return similarity_node
 
-def format_table_node(state: dict) -> dict:
+
+def format_case_table_node(state: dict) -> dict:
     docs_and_scores = state.get("retrieved_docs", [])
     formatted_table = "| Rank | Similar Case | Score |\n|------|----------------|-------|\n"
     for i, (doc, score) in enumerate(docs_and_scores):
-       formatted_table += f"| {i+1} | {doc.page_content} | {score:.4f} |\n"
-    return {
-        **state,
-        "answer": formatted_table
-    }
+        formatted_table += f"| {i+1} | {doc.page_content} | {score:.4f} |\n"
+    return {**state, "answer": formatted_table}
+	
+
+def format_claim_table_node(state: dict) -> dict:
+    docs_and_scores = state.get("retrieved_docs", [])
+    formatted_table = "| Rank | Case # | Claim # | Claim Text | Score |\n"
+    formatted_table += "|------|--------|----------|-------------|--------|\n"
+
+    for i, (doc, score) in enumerate(docs_and_scores):
+        meta = doc.metadata
+        case_number = meta.get("case_number", "N/A")
+        claim_number = meta.get("claim_number", "N/A")
+
+        formatted_table += f"| {i+1} | {case_number} | {claim_number} | {doc.page_content} | {score:.4f} |\n"
+
+    return {**state, "answer": formatted_table}
+
+
 
 def get_retriever_node(vectorstore: FAISS):
     def retriever_node(state: dict) -> dict:
@@ -73,22 +92,26 @@ def get_retriever_node(vectorstore: FAISS):
         }
     return retriever_node
 
+
 def answer_node(state: dict) -> dict:
     if state.get("mode") != "chat":
-        return {
-            **state,
-            "answer": "⚠️ Chat responses are only available in Chat Mode."
-        }
+        return {**state, "answer": "⚠️ Chat responses are only available in Chat Mode."}
 
-    result = qa_pipeline(
-        question=state["question"],
-        context=state["context"]
-    )
+    result = qa_pipeline(question=state["question"], context=state["context"])
+    return {**state, "answer": result["answer"]}
 
-    return {
-        **state,
-        "answer": result["answer"]
-    }
+
+def route_by_identifier(state):
+    case_number = state.get("case_number", "")
+    if case_number.startswith("MR"):
+        return "similarity_case"
+    elif case_number.startswith("CL"):
+        return "similarity_claim"
+    elif case_number:
+        return "unsupported_case" if "MR" in case_number else "unsupported_claim"
+    return "unsupported_case"
+
+
 
 # ------------------ QC Nurse Agentic AI ------------------
 
@@ -105,11 +128,10 @@ def qc_fetch_claims_node(state: dict) -> dict:
 
 def qc_create_task_node(state: dict) -> dict:
     claims = state.get("qc_claims", [])
-    qualified = claims
     progress = "✅ Create QC Task"
     return {
         **state,
-        "qualified_claims": qualified,
+        "qualified_claims": claims,
         "qc_status": progress,
         "qc_progress": state.get("qc_progress", []) + [progress]
     }
