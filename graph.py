@@ -23,6 +23,10 @@ class QAState(TypedDict):
     case_number: str
     retrieved_docs: list
     qc_status: str
+    qc_progress: list[str]
+    qc_claims: list[str]
+    qualified_claims: list[str]
+    reviewed_claims: list[str]
 
 class GraphComponents:
     """Container class for organizing graph components."""

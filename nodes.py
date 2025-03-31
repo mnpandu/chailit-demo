@@ -140,57 +140,52 @@ def route_by_identifier(state):
 def qc_fetch_claims_node(state: dict) -> dict:
     case_number = state.get("case_number", "000000")
     claims = [f"Claim-{case_number}-{i}" for i in range(1, 4)]
-    progress = "✅ Fetch all claims under the case"
+    progress = ["✅ Fetched all claims under the case"]
     return {
         **state,
         "qc_claims": claims,
-        "qc_progress": [progress],
-        "qc_status": progress
+        "qc_progress": progress,  # Initialize progress list
+        "qc_status": progress[0]
     }
 
 def qc_create_task_node(state: dict) -> dict:
     claims = state.get("qc_claims", [])
-    progress = "✅ Create QC Task"
+    progress = state.get("qc_progress", []) + ["✅ Created QC Task"]
     return {
         **state,
         "qualified_claims": claims,
-        "qc_status": progress,
-        "qc_progress": state.get("qc_progress", []) + [progress]
+        "qc_status": progress[-1],
+        "qc_progress": progress
     }
 
 def qc_review_node(state: dict) -> dict:
     reviewed = [f"{claim}: Reviewed ✅" for claim in state.get("qualified_claims", [])]
-    progress = "✅ Review each claim and update QC Status"
+    progress = state.get("qc_progress", []) + ["✅ Reviewed each claim and updated QC Status"]
     return {
         **state,
         "reviewed_claims": reviewed,
-        "qc_status": progress,
-        "qc_progress": state.get("qc_progress", []) + [progress]
+        "qc_status": progress[-1],
+        "qc_progress": progress
     }
 
 def qc_check_complete_node(state: dict) -> dict:
     all_done = all("Reviewed" in c for c in state.get("reviewed_claims", []))
-    progress = "✅ Check if all claims are reviewed"
+    progress = state.get("qc_progress", []) + ["✅ Verified all claims are reviewed"]
     status = "QC Completed" if all_done else "QC Incomplete"
     return {
         **state,
         "qc_status": status,
-        "qc_progress": state.get("qc_progress", []) + [progress]
+        "qc_progress": progress
     }
 
 def qc_finalize_node(state: dict) -> dict:
-    progress = [
-        "✅ Preparing Claims for QC Task.",
-        "✅ Create QC Task",
-        "✅ Review each claim and update QC Status",
-        "✅ Check if all claims are reviewed",
-        "✅ QC Task Completed and Close Task.",
-        "✅ Send Email for confirmation.",
+    progress = state.get("qc_progress", []) + [
+        "✅ QC Task Completed and Closed",
+        "✅ Sent confirmation email"
     ]
-    full_log = state.get("qc_progress", []) + progress
     return {
         **state,
-        "answer": "\n".join(full_log),
+        "answer": "\n".join(progress),
         "qc_status": "Email sent",
-        "qc_progress": full_log
+        "qc_progress": progress
     }
