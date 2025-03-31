@@ -18,6 +18,9 @@ This is a multimodal, agentic assistant designed for business workflows using:
 ### 🔹 Similarity Mode
 - Enter a **case number** (e.g., `MR123456`) to find similar case descriptions  
 - Enter a **claim number** (e.g., `CL123456`) to find similar claim records  
+- ✅ Now also supports **free-text input** using the following formats:
+  - `case text: <your issue description>`
+  - `claim text: <claim values in order>`
 - Uses FAISS similarity search on vector embeddings
 
 #### 🔎 Sample Input
