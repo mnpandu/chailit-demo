@@ -2,7 +2,7 @@ import re
 from transformers import pipeline
 from langchain_community.vectorstores import FAISS
 from oracle_client import fetch_case_data,fetch_claim_data
-from vector_store_case_data import build_oracle_vectorstore
+from vector_store_case_data import build_oracle_vectorstore,find_similar_cases
 from vector_store_claims_data import build_claims_vectorstore
 
 model_path = "distilbert-base-cased-distilled-squad"
@@ -17,19 +17,27 @@ def oracle_fetch_node(state: dict) -> dict:
     match = re.search(r"\b(MR\d{4,6}|CL\d{4,6})\b", query, re.IGNORECASE)
     identifier = match.group(0) if match else ""
     state["case_number"] = identifier  # keep original field name
-
+    # 1. Handle case ID
     if identifier.startswith("MR"):
         case_text = fetch_case_data(identifier)
         if not case_text.strip():
             return {**state, "retrieved_docs": [], "answer": "⚠️ Case not found."}
         return {**state, "context": case_text}
-
+    # 2. Handle claim ID
     elif identifier.startswith("CL"):
         claim_text = fetch_claim_data(identifier)
         if not claim_text.strip():
             return {**state, "retrieved_docs": [], "answer": "⚠️ Claim not found."}
         return {**state, "context": claim_text}
+    # 3. Handle direct case text input
+    elif query.lower().startswith("case text:"):
+        case_text = query[len("case text:"):].strip()
+        return {**state, "context": case_text}
 
+    # 4. Handle direct claim text input
+    elif query.lower().startswith("claim text:"):
+        claim_text = query[len("claim text:"):].strip()
+        return {**state, "context": claim_text}
     return {**state, "retrieved_docs": [], "answer": "⚠️ No valid identifier found."}
 
 
@@ -102,14 +110,24 @@ def answer_node(state: dict) -> dict:
 
 
 def route_by_identifier(state):
+    query = state.get("question", "").strip()
     case_number = state.get("case_number", "")
+
+    # Route based on known identifier
     if case_number.startswith("MR"):
         return "similarity_case"
     elif case_number.startswith("CL"):
         return "similarity_claim"
-    elif case_number:
-        return "unsupported_case" if "MR" in case_number else "unsupported_claim"
+
+    # Route based on prefix for free-text input
+    if query.lower().startswith("case text:"):
+        return "similarity_case"
+    elif query.lower().startswith("claim text:"):
+        return "similarity_claim"
+
+    # Fallback route
     return "unsupported_case"
+
 
 
 
