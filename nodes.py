@@ -4,6 +4,12 @@ from langchain_community.vectorstores import FAISS
 from oracle_client import fetch_case_data,fetch_claim_data
 from vector_store_case_data import build_oracle_vectorstore,find_similar_cases
 from vector_store_claims_data import build_claims_vectorstore
+from vector_plot import plot_similarity_results
+
+from langchain_huggingface import HuggingFaceEmbeddings
+from sentencetransformer import getSentenceModel
+
+embedding_model = HuggingFaceEmbeddings(model_name=getSentenceModel())
 
 model_path = "distilbert-base-cased-distilled-squad"
 qa_pipeline = pipeline("question-answering", model=model_path)
@@ -58,6 +64,7 @@ def get_similarity_node(source_type="case"):
                 "retrieved_docs": [],
                 "answer": f"⚠️ No similar documents found for {case_number}."
             }
+        viz_data = plot_similarity_results(docs_and_scores, embedding_model)        
 
         return {
             **state,
@@ -127,9 +134,6 @@ def route_by_identifier(state):
 
     # Fallback route
     return "unsupported_case"
-
-
-
 
 # ------------------ QC Nurse Agentic AI ------------------
 
